@@ -20,7 +20,7 @@ const StartScreen = ({ onStart }) => {
     >
       <h1 style={{ fontSize: "48px", marginBottom: "20px" }}>Expand.io</h1>
       <p style={{ fontSize: "24px", marginBottom: "40px" }}>
-        Capture territory and avoid your trail! Use WASD or Arrow Keys to move
+        Capture territory and avoid your trail!
       </p>
       <button
         onClick={onStart}
