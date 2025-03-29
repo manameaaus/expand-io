@@ -9,7 +9,6 @@
   overflow: hidden;
   position: relative;
 }
-
 .canvas-wrapper {
   position: relative;
   width: min(90vw, 90vh);
