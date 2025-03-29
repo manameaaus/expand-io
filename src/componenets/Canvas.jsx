@@ -3,9 +3,8 @@ import StartScreen from "./StartScreen";
 import EndScreen from "./EndScreen";
 
 export default function Canvas() {
-  // Game settings
   const playerRadius = 10;
-  const canvasDiameter = 1600; // Even larger canvas (1600x1600)
+  const canvasDiameter = 1600;
   const centerX = canvasDiameter / 2;
   const centerY = canvasDiameter / 2;
   const radius = canvasDiameter / 2;
@@ -13,7 +12,6 @@ export default function Canvas() {
   const visiblePixels = Math.floor(Math.PI * radius * radius);
   const botCount = 5;
 
-  // Refs and state
   const canvasRef = useRef(null);
   const territoryRef = useRef(new Set());
   const keys = useRef({
@@ -36,7 +34,6 @@ export default function Canvas() {
   const [botTrails, setBotTrails] = useState({});
   const [botTerritories, setBotTerritories] = useState({});
 
-  // Initialize territory
   const initializeTerritory = () => {
     const initialTerritory = new Set();
     for (let angle = 0; angle < Math.PI * 2; angle += 0.05) {
@@ -49,29 +46,27 @@ export default function Canvas() {
     territoryRef.current = initialTerritory;
   };
 
-  // Initialize bots (spaced farther apart and less aggressive)
   const initializeBots = () => {
     const newBots = [];
     const newTerritories = {};
 
     for (let i = 0; i < botCount; i++) {
       const angle = (i / botCount) * Math.PI * 2;
-      const distance = 300; // Increased from 150 to space bots farther apart
+      const distance = 300;
       newBots.push({
         id: i,
         x: centerX + Math.cos(angle) * distance,
         y: centerY + Math.sin(angle) * distance,
         color: `hsl(${Math.random() * 360}, 70%, 50%)`,
-        speed: speed * (0.5 + Math.random() * 0.4), // Slower speeds
-        aggression: 0.1 + Math.random() * 0.3, // Reduced aggression (0.1-0.4)
+        speed: speed * (0.5 + Math.random() * 0.4),
+        aggression: 0.1 + Math.random() * 0.3,
         trail: [],
         state: "exploring",
         targetAngle: Math.random() * Math.PI * 2,
         changeDirectionCounter: 0,
-        directionChangeFrequency: 100 + Math.random() * 100, // Less frequent direction changes
+        directionChangeFrequency: 100 + Math.random() * 100,
       });
 
-      // Initialize bot territory (smaller starting area)
       newTerritories[i] = new Set();
       for (let a = 0; a < Math.PI * 2; a += 0.3) {
         for (let r = 0; r <= 20; r += 2) {
@@ -87,7 +82,6 @@ export default function Canvas() {
     botRefs.current = [...newBots];
   };
 
-  // Simplified bot AI (dumber behavior)
   const updateBots = () => {
     const updatedBots = bots.map((bot) => {
       let {
@@ -104,35 +98,28 @@ export default function Canvas() {
         directionChangeFrequency,
       } = bot;
 
-      // Boundary check (simplified)
       const distFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
       if (distFromCenter + playerRadius > radius * 0.95) {
         targetAngle = Math.atan2(centerY - y, centerX - x);
       }
 
-      // Dumber state machine
       if (changeDirectionCounter <= 0) {
-        // Very rarely target player (reduced aggression)
         if (Math.random() < aggression * 0.05) {
           targetAngle = Math.atan2(player.y - y, player.x - x);
         } else {
-          // Mostly just random wandering
           targetAngle += ((Math.random() - 0.5) * Math.PI) / 2;
         }
         changeDirectionCounter = directionChangeFrequency;
       }
       changeDirectionCounter--;
 
-      // Occasionally decide to return home
       if (state === "exploring" && trail.length > 50 + Math.random() * 100) {
         state = "returning";
       }
 
-      // Return home logic
       if (state === "returning") {
         const territoryPoints = Array.from(botTerritories[bot.id] || []);
         if (territoryPoints.length > 0) {
-          // Pick a random point in territory to return to (dumber than finding closest)
           const randomPoint = territoryPoints[
             Math.floor(Math.random() * territoryPoints.length)
           ]
@@ -141,7 +128,6 @@ export default function Canvas() {
           targetAngle = Math.atan2(randomPoint[1] - y, randomPoint[0] - x);
         }
 
-        // Check if back in territory
         if (botTerritories[bot.id]?.has(`${Math.floor(x)},${Math.floor(y)}`)) {
           claimBotTerritory(bot.id, trail);
           trail = [];
@@ -149,14 +135,12 @@ export default function Canvas() {
         }
       }
 
-      // Movement
       dx = Math.cos(targetAngle) * speed;
       dy = Math.sin(targetAngle) * speed;
       x += dx;
       y += dy;
 
-      // Update trail
-      trail = [...trail, { x, y }].slice(-200); // Shorter trails
+      trail = [...trail, { x, y }].slice(-200);
 
       return {
         ...bot,
@@ -182,19 +166,16 @@ export default function Canvas() {
     botRefs.current = updatedBots;
   };
 
-  // Claim territory for bot
   const claimBotTerritory = (id, trail) => {
     if (trail.length < 3) return;
 
     const newTerritory = new Set(botTerritories[id]);
-    const loop = trail.slice(-50); // Smaller claim area
+    const loop = trail.slice(-50);
 
-    // Add trail points
     loop.forEach((p) =>
       newTerritory.add(`${Math.floor(p.x)},${Math.floor(p.y)}`)
     );
 
-    // Simple area fill (less efficient to be dumber)
     const [minX, maxX] = [
       Math.min(...loop.map((p) => p.x)),
       Math.max(...loop.map((p) => p.x)),
@@ -205,7 +186,6 @@ export default function Canvas() {
     ];
 
     for (let x = minX; x <= maxX; x += 4) {
-      // Less thorough filling
       for (let y = minY; y <= maxY; y += 4) {
         if (isPointInPolygon({ x, y }, loop)) {
           newTerritory.add(`${Math.floor(x)},${Math.floor(y)}`);
@@ -217,7 +197,6 @@ export default function Canvas() {
     setBotTerritories((prev) => ({ ...prev, [id]: newTerritory }));
   };
 
-  // Point-in-polygon check
   const isPointInPolygon = (point, polygon) => {
     if (polygon.length < 3) return false;
     let inside = false;
@@ -249,11 +228,9 @@ export default function Canvas() {
     return inside;
   };
 
-  // Draw the game
   const drawGame = (ctx) => {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-    // Draw player territory
     ctx.fillStyle = "lightblue";
     territoryRef.current.forEach((pixel) => {
       const [x, y] = pixel.split(",").map(Number);
@@ -263,12 +240,11 @@ export default function Canvas() {
       }
     });
 
-    // Draw bot territories
     Object.entries(botTerritories).forEach(([id, territory]) => {
       const bot = bots.find((b) => b.id === parseInt(id));
       if (!bot) return;
 
-      ctx.fillStyle = bot.color + "80"; // Semi-transparent
+      ctx.fillStyle = bot.color + "80";
       territory.forEach((pixel) => {
         const [x, y] = pixel.split(",").map(Number);
         const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
@@ -278,7 +254,6 @@ export default function Canvas() {
       });
     });
 
-    // Draw player trail
     ctx.fillStyle = "blue";
     trail.forEach((point) => {
       ctx.beginPath();
@@ -286,7 +261,6 @@ export default function Canvas() {
       ctx.fill();
     });
 
-    // Draw bot trails
     Object.entries(botTrails).forEach(([id, trail]) => {
       const bot = bots.find((b) => b.id === parseInt(id));
       if (!bot || !trail || trail.length < 2) return;
@@ -301,13 +275,11 @@ export default function Canvas() {
       ctx.stroke();
     });
 
-    // Draw player
     ctx.fillStyle = "darkblue";
     ctx.beginPath();
     ctx.arc(player.x, player.y, playerRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw bots (smaller and with outline)
     bots.forEach((bot) => {
       ctx.fillStyle = bot.color;
       ctx.beginPath();
@@ -318,7 +290,6 @@ export default function Canvas() {
       ctx.stroke();
     });
 
-    // Draw boundary
     ctx.strokeStyle = "gray";
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -326,7 +297,6 @@ export default function Canvas() {
     ctx.stroke();
   };
 
-  // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!gameStarted || gameOver) return;
@@ -373,7 +343,6 @@ export default function Canvas() {
     };
   }, [gameStarted, gameOver]);
 
-  // Main game loop
   useEffect(() => {
     if (!gameStarted || gameOver) return;
 
@@ -382,13 +351,10 @@ export default function Canvas() {
     let animationFrameId;
 
     const update = () => {
-      // Update bots first (simplified, less frequent updates)
       if (Math.random() < 0.7) {
-        // Only update bots 70% of the time
         updateBots();
       }
 
-      // Player movement
       let dx = 0,
         dy = 0;
       if (keys.current.ArrowUp || keys.current.w) dy -= speed;
@@ -396,7 +362,6 @@ export default function Canvas() {
       if (keys.current.ArrowLeft || keys.current.a) dx -= speed;
       if (keys.current.ArrowRight || keys.current.d) dx += speed;
 
-      // Normalize diagonal movement
       if (dx !== 0 && dy !== 0) {
         const len = Math.sqrt(dx * dx + dy * dy);
         dx = (dx / len) * speed;
@@ -406,7 +371,6 @@ export default function Canvas() {
       const newX = player.x + dx;
       const newY = player.y + dy;
 
-      // Boundary check
       const distFromCenter = Math.sqrt(
         (newX - centerX) ** 2 + (newY - centerY) ** 2
       );
@@ -415,7 +379,6 @@ export default function Canvas() {
         return;
       }
 
-      // Collision with bot trails (less sensitive)
       Object.values(botTrails).forEach((trail) => {
         if (
           trail &&
@@ -430,7 +393,6 @@ export default function Canvas() {
         }
       });
 
-      // Collision with bot heads
       bots.forEach((bot) => {
         if (
           Math.sqrt((newX - bot.x) ** 2 + (newY - bot.y) ** 2) <
@@ -444,8 +406,6 @@ export default function Canvas() {
       setPlayer({ x: newX, y: newY });
       setTrail((prev) => {
         const newTrail = [...prev, { x: newX, y: newY }];
-
-        // Check if player returned to their territory
         if (
           territoryRef.current.has(`${Math.floor(newX)},${Math.floor(newY)}`)
         ) {
@@ -471,7 +431,6 @@ export default function Canvas() {
               newTerritory.add(`${Math.floor(p.x)},${Math.floor(p.y)}`)
             );
 
-            // Fill the area
             const [minX, maxX] = [
               Math.min(...loop.map((p) => p.x)),
               Math.max(...loop.map((p) => p.x)),
@@ -485,7 +444,6 @@ export default function Canvas() {
               for (let y = minY; y <= maxY; y += playerRadius) {
                 if (isPointInPolygon({ x, y }, loop)) {
                   newTerritory.add(`${Math.floor(x)},${Math.floor(y)}`);
-                  // Remove from bot territories if claimed by player
                   Object.keys(botTerritories).forEach((id) => {
                     if (
                       botTerritories[id].has(
@@ -526,7 +484,6 @@ export default function Canvas() {
     botTerritories,
   ]);
 
-  // Initialize game
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -540,7 +497,6 @@ export default function Canvas() {
     initializeBots();
   }, []);
 
-  // Restart game
   const restartGame = () => {
     keys.current = {
       ArrowUp: false,
