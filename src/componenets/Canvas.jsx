@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import StartScreen from "./StartScreen";
 import EndScreen from "./EndScreen";
+import "./GameStyling.css";
 
 export default function Canvas() {
   const playerRadius = 10;
@@ -517,50 +518,21 @@ export default function Canvas() {
   };
 
   return (
-    <div
-      style={{
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden",
-        width: "100vw",
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+    <div className="game-container">
       {!gameStarted && <StartScreen onStart={() => setGameStarted(true)} />}
       {gameOver && <EndScreen onRestart={restartGame} />}
 
-      <div
-        style={{
-          position: "relative",
-          width: "min(90vw, 90vh)",
-          height: "min(90vw, 90vh)",
-          maxWidth: "1600px",
-          maxHeight: "1600px",
-        }}
-      >
+      <div className="canvas-wrapper">
         <canvas
           ref={canvasRef}
-          style={{
-            border: "3px solid #000",
-            background: "#f0f0f0",
-            width: "100%",
-            height: "100%",
-          }}
+          className="game-canvas"
           width={canvasDiameter}
           height={canvasDiameter}
         />
       </div>
-      <div
-        style={{
-          fontSize: "min(4vw, 24px)",
-          margin: "10px",
-          fontWeight: "bold",
-        }}
-      ></div>
+      <div>
+        {gameOver && <span className="game-over-text">| Game Over!</span>}
+      </div>
     </div>
   );
 }
